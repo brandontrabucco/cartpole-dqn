@@ -14,33 +14,51 @@ class TFAgentUtils(object):
 
     def __init__(self):
         tf.enable_eager_execution()
-        self.global_step = None
+        self.global_step = tf.contrib.eager.Variable(
+            0, 
+            trainable=False)
+        self.decay_shift = tf.contrib.eager.Variable(
+            0, 
+            trainable=False)
 
     def initialize_weights_cpu(
             self, 
             name,
-            shape,
-            standard_deviation=0.01,
-            decay_factor=None):
-        weights = tf.get_variable(
-            name,
-            shape,
-            initializer=tf.truncated_normal_initializer(
-                stddev=standard_deviation,
-                dtype=tf.float32),
-            dtype=tf.float32)
-        return weights
+            shape=None,
+            value=None):
+        if value is not None:
+            init = tf.constant(value)
+            return tf.get_variable(
+                name,
+                initializer=init,
+                dtype=tf.float32)
+        elif shape is not None:
+            init = tf.truncated_normal_initializer(
+                stddev=0.01)
+            return tf.get_variable(
+                name,
+                shape=shape,
+                initializer=init,
+                dtype=tf.float32)
 
     def initialize_biases_cpu(
             self,
             name,
-            shape):
-        biases = tf.get_variable(
-            name,
-            shape,
-            initializer=tf.constant_initializer(1.0),
-            dtype=tf.float32)
-        return biases
+            shape=None,
+            value=None):
+        if value is not None:
+            init = tf.constant(value)
+            return tf.get_variable(
+                name,
+                initializer=init,
+                dtype=tf.float32)
+        elif shape is not None:
+            init = tf.constant_initializer(1.0)
+            return tf.get_variable(
+                name,
+                shape=shape,
+                initializer=init,
+                dtype=tf.float32)
 
     def generate_batch(
             self, 
@@ -72,41 +90,39 @@ class TFAgentUtils(object):
                 labels - prediction)
         return l2_norm
 
-    def optimizer(
+    def create_optimizer(
             self,
             learning_rate,
             decay_rate,
             decay_steps):
-        self.global_step = tf.contrib.eager.Variable(
-            0, 
-            trainable=False)
-        return tf.train.AdamOptimizer(
+        self.global_optimizer = tf.train.AdamOptimizer(
             tf.train.exponential_decay(
                 learning_rate,
-                self.global_step,
+                self.global_step - self.decay_shift,
                 decay_steps,
                 decay_rate))
 
+    def reset_decay(self):
+        tf.assign(self.decay_shift, self.global_step)
+
     def minimize(
             self, 
-            optimizer,
             loss,
             parameters):
-        return optimizer.minimize(
+        return self.global_optimizer.minimize(
             loss, 
             global_step=self.global_step,
             var_list=parameters)
 
-    def reset(self):
-        tf.assign(self.global_step, 0)
-
     def concat(
             self, 
             state, 
-            action):
+            action,
+            action_size):
+        action = tf.one_hot(action, action_size)
         return tf.concat([
-            tf.cast(state, tf.float32), 
-            tf.one_hot(tf.squeeze(action), 2)], axis=-1)
+            state, 
+            action], axis=-1)
 
     def expand_actions(
             self,  
@@ -119,9 +135,7 @@ class TFAgentUtils(object):
         next_action = tf.tile(tf.reshape(
             tf.range(action_size), 
             [1, action_size]), [batch_size, 1])
-        return self.concat(
-            state, 
-            next_action)
+        return state, next_action
 
     def max_action(
             self, 
@@ -131,7 +145,7 @@ class TFAgentUtils(object):
             batch_size):
         return tf.stop_gradient(tf.reduce_max(
             inference(
-                self.expand_actions(
+                *self.expand_actions(
                     next_state, 
                     action_size, 
                     batch_size)), 
@@ -145,9 +159,8 @@ class TFAgentUtils(object):
             batch_size):
         return tf.stop_gradient(tf.argmax(
             inference(
-                self.expand_actions(
+                *self.expand_actions(
                     current_state, 
                     action_size, 
                     batch_size)), 
                 axis=1))
-    

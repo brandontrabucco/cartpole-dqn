@@ -7,6 +7,7 @@ chdir("G:\\My Drive\\Academic\\Research\\Cartpole Simulation")
 # Cartpole Package....... #
 ###########################
 
+from cartpole.agent import STATE_SIZE
 import numpy as np
 
 class TFEnvironmentUtils(object):
@@ -14,10 +15,23 @@ class TFEnvironmentUtils(object):
     def __init__(self):
         pass
 
-    def sample_randomly(
+    def sample_off_policy(
             self, 
             env,
-            capacity):
+            capacity,
+            render=False):
+        return self.sample_on_policy(
+            env, 
+            capacity, 
+            lambda x: env.action_space.sample(), 
+            render=render)
+
+    def sample_on_policy(
+            self, 
+            env, 
+            capacity, 
+            policy,
+            render=False):
         iterations = 0
         state = []
         action = []
@@ -28,15 +42,21 @@ class TFEnvironmentUtils(object):
             initial_state = env.reset()
             for i in range(capacity):
 
-                random_action = env.action_space.sample()
+                if render:
+                    env.render()
+                directed_action = policy(
+                    initial_state.reshape(
+                        (1, STATE_SIZE)).astype(
+                            np.float32))
                 (result_state, 
                     result_reward, 
                     done, 
                     info) = env.step(
-                    random_action)
+                        directed_action)
+
                 iterations += 1
                 state += [initial_state]
-                action += [random_action]
+                action += [directed_action]
                 reward += [result_reward]
                 next_state += [result_state]
 
@@ -46,9 +66,11 @@ class TFEnvironmentUtils(object):
                     initial_state = result_state
 
         state = np.vstack(state).astype(np.float32)
-        action = np.vstack(action)
-        reward = np.vstack(reward).astype(np.float32)
-        next_state = np.vstack(next_state).astype(np.float32)
+        action = np.squeeze(np.vstack(action))
+        reward = np.squeeze(np.vstack(
+            reward).astype(np.float32))
+        next_state = np.vstack(
+            next_state).astype(np.float32)
         return (state, 
             action, 
             reward, 

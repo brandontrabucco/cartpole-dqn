@@ -18,9 +18,19 @@ class TFEnvironment(object):
         self.tf_environment_utils = TFEnvironmentUtils()
         self.env = gym.make('CartPole-v0')
     
-    def random_replay(self):
-        return self.tf_environment_utils.sample_randomly(
+    def simulate_random(self, render=False):
+        args = self.tf_environment_args()
+        return self.tf_environment_utils.sample_off_policy(
             self.env, 
-            self.tf_environment_args().replay_capacity)
+            args.replay_capacity,
+            render=render)
+
+    def simulate_policy(self, policy, render=False):
+        args = self.tf_environment_args()
+        return self.tf_environment_utils.sample_on_policy(
+            self.env, 
+            args.replay_capacity,
+            policy,
+            render=render)
 
     
