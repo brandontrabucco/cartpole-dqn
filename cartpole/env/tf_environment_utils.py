@@ -40,7 +40,6 @@ class TFEnvironmentUtils(object):
         while iterations < capacity:
             initial_state = env.reset()
             for i in range(capacity):
-
                 if render:
                     env.render()
                 directed_action = policy(
@@ -51,18 +50,17 @@ class TFEnvironmentUtils(object):
                     done, 
                     info) = env.step(
                         directed_action)
-
                 iterations += 1
                 state += [initial_state]
                 action += [directed_action]
                 reward += [result_reward]
                 next_state += [result_state]
-
                 if done or iterations == capacity:
                     break
                 else:
                     initial_state = result_state
 
+        env.close()
         state = np.vstack(state).astype(np.float32)
         action = np.squeeze(np.vstack(action))
         reward = np.squeeze(np.vstack(

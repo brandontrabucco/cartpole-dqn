@@ -21,6 +21,8 @@ class TFExperiment(object):
         self.register("--iterations_per_epoch", int, 100)
         self.register("--logs_per_epoch", int, 10)
         self.register("--test_epoch", int, 0)
+        self.register("--use_policy", bool, False)
+        self.register("--render_env", bool, False)
         self.tf_environment = TFEnvironment()
         self.tf_agent = TFAgent()
 
@@ -33,7 +35,14 @@ class TFExperiment(object):
             self.tf_agent.reset()
             current_loss = 0
 
-            s, a, r, ns = self.tf_environment.simulate_random()
+            if args.use_policy:
+                s, a, r, ns = self.tf_environment.simulate_policy(
+                    lambda x: self.tf_agent.test(x).numpy()[0],
+                    render=args.render_env)
+            else:
+                s, a, r, ns = self.tf_environment.simulate_random(
+                    render=args.render_env)
+
             for i in range(args.iterations_per_epoch):
                 current_loss = self.tf_agent.train(s, a, r, ns).numpy().sum()
 
@@ -69,7 +78,12 @@ class TFExperiment(object):
 
     def test(self):
         args = self.register.parse_args()
+        
         self.tf_agent.load_parameters(args.test_epoch)
-        self.tf_environment.simulate_policy(
-            lambda x: self.tf_agent.test(x).numpy()[0], 
-            render=True)
+        if args.use_policy:
+            self.tf_environment.simulate_policy(
+                lambda x: self.tf_agent.test(x).numpy()[0],
+                render=args.render_env)
+        else:
+            self.tf_environment.simulate_random(
+                render=args.render_env)
