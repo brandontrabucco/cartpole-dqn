@@ -7,7 +7,6 @@ chdir("G:\\My Drive\\Academic\\Research\\Cartpole Simulation")
 # Cartpole Package....... #
 ###########################
 
-from cartpole.agent import LOSS_COLLECTION
 import tensorflow as tf
 
 class TFAgentUtils(object):

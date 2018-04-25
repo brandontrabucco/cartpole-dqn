@@ -7,7 +7,6 @@ chdir("G:\\My Drive\\Academic\\Research\\Cartpole Simulation")
 # Cartpole Package....... #
 ###########################
 
-from cartpole.agent import STATE_SIZE
 import numpy as np
 
 class TFEnvironmentUtils(object):
@@ -45,8 +44,7 @@ class TFEnvironmentUtils(object):
                 if render:
                     env.render()
                 directed_action = policy(
-                    initial_state.reshape(
-                        (1, STATE_SIZE)).astype(
+                    initial_state[np.newaxis, :].astype(
                             np.float32))
                 (result_state, 
                     result_reward, 

@@ -12,8 +12,6 @@ from cartpole.agent.tf_agent_utils import TFAgentUtils
 from cartpole.agent import WEIGHTS_EXTENSION
 from cartpole.agent import BIASES_EXTENSION
 from cartpole.agent import NUMBER_EXTENSION
-from cartpole.agent import INPUT_SIZE
-from cartpole.agent import ACTION_SIZE
 import pickle
 
 class TFAgent(object):
@@ -33,7 +31,7 @@ class TFAgent(object):
         ) for i in range(1, args.controller_depth)]
         self.weights = [self.tf_agent_utils.initialize_weights_cpu(
             ("layer" + NUMBER_EXTENSION(0) + WEIGHTS_EXTENSION),
-            shape=[INPUT_SIZE, args.controller_breadth]
+            shape=[args.action_size + args.state_size, args.controller_breadth]
         )] + self.weights
         self.weights = self.weights + [self.tf_agent_utils.initialize_weights_cpu(
             ("layer" + NUMBER_EXTENSION(args.controller_depth) + WEIGHTS_EXTENSION),
@@ -100,7 +98,7 @@ class TFAgent(object):
         x_batch = self.tf_agent_utils.concat(
             x_state, 
             x_action,
-            ACTION_SIZE)
+            args.action_size)
         for i, (w, b) in enumerate(zip(
                 self.weights, 
                 self.biases)):
@@ -130,7 +128,7 @@ class TFAgent(object):
                 args.discount_factor * self.tf_agent_utils.max_action(
                     self.inference, 
                     next_state_batch, 
-                    ACTION_SIZE,
+                    args.action_size,
                     args.batch_size))
             return self.tf_agent_utils.l2_loss(
                 q_estimate, 
@@ -144,9 +142,11 @@ class TFAgent(object):
     def test(
             self,
             current_state):
+        args = self.tf_agent_args()
+        
         return self.tf_agent_utils.argmax_action(
             self.inference, 
             current_state, 
-            ACTION_SIZE,
+            args.action_size,
             current_state.shape[0])
         
