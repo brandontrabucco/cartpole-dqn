@@ -27,5 +27,5 @@ python train.py
 Run a visual testing session using test.py
 
 `
-python train.py
+python test.py
 `
